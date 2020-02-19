@@ -1,0 +1,910 @@
+---
+title: 'How to collect private signals in information cascade : an empirical study'
+author: "Kota Takeda"
+date: "2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(latex2exp)
+library(vioplot)
+```
+
+
+```{r}
+d<-read.csv("Chap11_Data.csv")
+```  
+
+
+```{r}
+q5<-d[d$q==5,]
+q6<-d[d$q==6,]
+q7<-d[d$q==7,]
+q8<-d[d$q==8,]
+```
+
+
+```{r}
+I5<-length(table(q5$i))
+I6<-length(table(q6$i))
+I7<-length(table(q7$i))
+I8<-length(table(q8$i))
+```
+
+
+```{r}
+Tq5_i<-c()
+Tq6_i<-c()
+Tq7_i<-c()
+Tq8_i<-c()
+for(i in 1:I5){
+Tq5_i[i]<-length(q5[q5$i==i,]$X)
+Tq6_i[i]<-length(q6[q6$i==i,]$X) 
+Tq7_i[i]<-length(q7[q7$i==i,]$X) 
+}
+for(i in 1:I8){
+Tq8_i[i]<-length(q8[q8$i==i,]$X) 
+}
+```
+
+
+```{r}
+Zit_q5<-matrix(0,nrow=I5,ncol=max(Tq5_i))
+Zit_q6<-matrix(0,nrow=I6,ncol=max(Tq6_i))
+Zit_q7<-matrix(0,nrow=I7,ncol=max(Tq7_i))
+Zit_q8<-matrix(0,nrow=I8,ncol=max(Tq8_i))
+
+Sit_q5<-matrix(0,nrow=I5,ncol=max(Tq5_i))
+Sit_q6<-matrix(0,nrow=I6,ncol=max(Tq6_i))
+Sit_q7<-matrix(0,nrow=I7,ncol=max(Tq7_i))
+Sit_q8<-matrix(0,nrow=I8,ncol=max(Tq8_i))
+
+Xit_q5<-matrix(0,nrow=I5,ncol=max(Tq5_i))
+Xit_q6<-matrix(0,nrow=I6,ncol=max(Tq6_i))
+Xit_q7<-matrix(0,nrow=I7,ncol=max(Tq7_i))
+Xit_q8<-matrix(0,nrow=I8,ncol=max(Tq8_i))
+
+IDit_q5<-matrix(0,nrow=I5,ncol=max(Tq5_i))
+IDit_q6<-matrix(0,nrow=I6,ncol=max(Tq6_i))
+IDit_q7<-matrix(0,nrow=I7,ncol=max(Tq7_i))
+IDit_q8<-matrix(0,nrow=I8,ncol=max(Tq8_i))
+
+for(i in 1:I5){
+for(t in 1:Tq5_i[i]){
+  Zit_q5[i,t]<-mean(q5[q5$i==i,]$X[1:t])
+  Sit_q5[i,t]<-q5[q5$i==i,]$S[t]
+  Xit_q5[i,t]<-q5[q5$i==i,]$X[t]
+  IDit_q5[i,t]<-q5[q5$i==i,]$ID[t]
+ 
+}  
+}
+for(i in 1:I6){
+for(t in 1:Tq6_i[i]){
+  Zit_q6[i,t]<-mean(q6[q6$i==i,]$X[1:t])
+  Sit_q6[i,t]<-q6[q6$i==i,]$S[t]
+  Xit_q6[i,t]<-q6[q6$i==i,]$X[t]
+  IDit_q6[i,t]<-q6[q6$i==i,]$ID[t]
+
+}  
+}
+for(i in 1:I7){
+for(t in 1:Tq7_i[i]){
+  Zit_q7[i,t]<-mean(q7[q7$i==i,]$X[1:t])
+  Sit_q7[i,t]<-q7[q7$i==i,]$S[t]
+  Xit_q7[i,t]<-q7[q7$i==i,]$X[t]
+  IDit_q7[i,t]<-q7[q7$i==i,]$ID[t]
+
+}  
+}
+for(i in 1:I8){
+for(t in 1:Tq8_i[i]){
+  Zit_q8[i,t]<-mean(q8[q8$i==i,]$X[1:t])
+  Sit_q8[i,t]<-q8[q8$i==i,]$S[t]
+  Xit_q8[i,t]<-q8[q8$i==i,]$X[t]
+  IDit_q8[i,t]<-q8[q8$i==i,]$ID[t]
+}  
+}
+```
+
+  
+```{r}
+d5<-list()
+
+for(t in 2:50){
+X5<-c()
+S5<-c()
+Z5<-c()
+n<-0
+for(i in 1:I5){
+    n<-n+1
+    X5[n]<-Xit_q5[i,t]
+    S5[n]<-Sit_q5[i,t]
+    Z5[n]<-Zit_q5[i,t-1]
+}
+S5<-S5-0.5
+Z5<-Z5-0.5
+d5[[t-1]]<-data.frame(X=X5,S=S5,Z=Z5)
+}
+```
+  
+
+```{r include=FALSE}
+reg5<-list()
+b1_5<-c();b2_5<-c()
+b15_2.5<-c();b15_97.5<-c()
+b25_2.5<-c();b25_97.5<-c()
+for(i in 1:49){
+  reg5[[i]]<-glm(X~S+Z-1,data=d5[[i]],family=binomial)
+  b1_5[i]<-reg5[[i]]$coef[1]
+  b2_5[i]<-reg5[[i]]$coef[2]
+  b15_2.5[i]<-confint(reg5[[i]])[1,1]
+  b15_97.5[i]<-confint(reg5[[i]])[1,2]
+  b25_2.5[i]<-confint(reg5[[i]])[2,1]
+  b25_97.5[i]<-confint(reg5[[i]])[2,2]
+}
+```
+
+
+```{r}
+t<-2:50
+plot(t,b1_5,xlim=c(0,50),ylim=c(0,14),ylab=TeX("$\\beta_i$"),col=2,pch=16)
+points(t,b2_5,col=4,pch=16)
+```
+
+
+```{r}
+resid1_5 <- function(par)
+{
+	yhat <- par[1]/(1+par[2]*exp(-par[3]*t))+par[4]
+	sum((b1_5-yhat)^2)
+}
+es1_5<-optim(c(-10, 5, 0.1, 10), resid1_5)
+```
+
+
+```{r}
+c1_5<-es1_5$par
+f1_5<-function(t) c1_5[1]/(1+c1_5[2]*exp(-c1_5[3]*t))+c1_5[4]
+```
+
+
+```{r}
+resid2_5 <- function(par)
+{
+	yhat <- par[1]/(1+par[2]*exp(-par[3]*t))+par[4]
+	sum((b2_5-yhat)^2)
+}
+es2_5<-optim(c(-15, 1, 0.1, 15), resid2_5)
+```
+
+
+```{r}
+c2_5<-es2_5$par
+f2_5<-function(t) c2_5[1]/(1+c2_5[2]*exp(-c2_5[3]*t))+c2_5[4]
+```
+
+
+```{r}
+plot(t,b1_5,xlim=c(0,50),ylim=c(0,18),ylab=TeX("$\\beta_i$"),
+     col=2,cex.lab= 1,cex.axis=1.5,main=TeX("$q=5/9$"),cex.main=2)
+points(t,b2_5,col=4)
+
+curve(f1_5,col=2,lty=1,lwd=3,add=TRUE) 
+curve(f2_5,col=4,lty=1,lwd=3,add=TRUE) 
+
+legend("topleft",legend=c(TeX("$\\beta_1$"),TeX("$\\beta_2$")),col=c(2,4),lty=1,lwd=2,cex=1.2)
+```
+
+
+```{r}
+d6<-list()
+
+for(t in 2:50){
+X<-c()
+S<-c()
+Z<-c()
+n<-0
+for(i in 1:I6){
+    n<-n+1
+    X[n]<-Xit_q6[i,t]
+    S[n]<-Sit_q6[i,t]
+    Z[n]<-Zit_q6[i,t-1]
+}
+S<-S-0.5
+Z<-Z-0.5
+d6[[t-1]]<-data.frame(X=X,S=S,Z=Z)
+}
+
+
+d7<-list()
+
+for(t in 2:50){
+X<-c()
+S<-c()
+Z<-c()
+n<-0
+for(i in 1:I7){
+    n<-n+1
+    X[n]<-Xit_q7[i,t]
+    S[n]<-Sit_q7[i,t]
+    Z[n]<-Zit_q7[i,t-1]
+}
+S<-S-0.5
+Z<-Z-0.5
+d7[[t-1]]<-data.frame(X=X,S=S,Z=Z)
+}
+
+
+d8<-list()
+
+for(t in 2:50){
+X<-c()
+S<-c()
+Z<-c()
+n<-0
+for(i in 1:I8){
+    n<-n+1
+    X[n]<-Xit_q8[i,t]
+    S[n]<-Sit_q8[i,t]
+    Z[n]<-Zit_q8[i,t-1]
+}
+S<-S-0.5
+Z<-Z-0.5
+d8[[t-1]]<-data.frame(X=X,S=S,Z=Z)
+}
+
+```
+  
+
+```{r include=FALSE}
+reg6<-list()
+b1_6<-c();b2_6<-c()
+b16_2.5<-c();b16_97.5<-c()
+b26_2.5<-c();b26_97.5<-c()
+for(i in 1:49){
+  reg6[[i]]<-glm(X~S+Z-1,data=d6[[i]],family=binomial)
+  b1_6[i]<-reg6[[i]]$coef[1]
+  b2_6[i]<-reg6[[i]]$coef[2]
+  b16_2.5[i]<-confint(reg6[[i]])[1,1]
+  b16_97.5[i]<-confint(reg6[[i]])[1,2]
+  b26_2.5[i]<-confint(reg6[[i]])[2,1]
+  b26_97.5[i]<-confint(reg6[[i]])[2,2]
+}
+
+reg7<-list()
+b1_7<-c();b2_7<-c()
+b17_2.5<-c();b17_97.5<-c()
+b27_2.5<-c();b27_97.5<-c()
+for(i in 1:49){
+  reg7[[i]]<-glm(X~S+Z-1,data=d7[[i]],family=binomial)
+  b1_7[i]<-reg7[[i]]$coef[1]
+  b2_7[i]<-reg7[[i]]$coef[2]
+  b17_2.5[i]<-confint(reg7[[i]])[1,1]
+  b17_97.5[i]<-confint(reg7[[i]])[1,2]
+  b27_2.5[i]<-confint(reg7[[i]])[2,1]
+  b27_97.5[i]<-confint(reg7[[i]])[2,2]
+  
+}
+
+reg8<-list()
+b1_8<-c();b2_8<-c()
+b18_2.5<-c();b18_97.5<-c()
+b28_2.5<-c();b28_97.5<-c()
+for(i in 1:49){
+  reg8[[i]]<-glm(X~S+Z-1,data=d8[[i]],family=binomial)
+  b1_8[i]<-reg8[[i]]$coef[1]
+  b2_8[i]<-reg8[[i]]$coef[2]
+  b18_2.5[i]<-confint(reg8[[i]])[1,1]
+  b18_97.5[i]<-confint(reg8[[i]])[1,2]
+  b28_2.5[i]<-confint(reg8[[i]])[2,1]
+  b28_97.5[i]<-confint(reg8[[i]])[2,2]
+}
+```
+
+
+```{r}
+t<-2:50
+
+resid1_6 <- function(par)
+{
+	yhat <- par[1]/(1+par[2]*exp(-par[3]*t))+par[4]
+	sum((b1_6-yhat)^2)
+}
+es1_6<-optim(c(-15, 5, 0.1, 15), resid1_6)
+
+resid1_7 <- function(par)
+{
+	yhat <- par[1]/(1+par[2]*exp(-par[3]*t))+par[4]
+	sum((b1_7-yhat)^2)
+}
+es1_7<-optim(c(-10, 5, 0.1, 10), resid1_7)
+
+resid1_8 <- function(par)
+{
+	yhat <- par[1]/(1+par[2]*exp(-par[3]*t))+par[4]
+	sum((b1_8-yhat)^2)
+}
+es1_8<-optim(c(-10, 5, 0.1, 10), resid1_8)
+
+```
+
+
+```{r}
+c1_6<-es1_6$par
+f1_6<-function(t) c1_6[1]/(1+c1_6[2]*exp(-c1_6[3]*t))+c1_6[4]
+
+c1_7<-es1_7$par
+f1_7<-function(t) c1_7[1]/(1+c1_7[2]*exp(-c1_7[3]*t))+c1_7[4]
+
+c1_8<-es1_8$par
+f1_8<-function(t) c1_8[1]/(1+c1_8[2]*exp(-c1_8[3]*t))+c1_8[4]
+```
+
+
+```{r}
+resid2_6 <- function(par)
+{
+	yhat <- par[1]/(1+par[2]*exp(-par[3]*t))+par[4]
+	sum((b2_6-yhat)^2)
+}
+es2_6<-optim(c(-10, 5, 0.1, 10), resid2_6)
+
+resid2_7 <- function(par)
+{
+	yhat <- par[1]/(1+par[2]*exp(-par[3]*t))+par[4]
+	sum((b2_7-yhat)^2)
+}
+es2_7<-optim(c(-5, 1, 0.1, 10), resid2_7)
+
+resid2_8<- function(par)
+{
+	yhat <- par[1]/(1+par[2]*exp(-par[3]*t))+par[4]
+	sum((b2_8-yhat)^2)
+}
+es2_8<-optim(c(-5, 1, 0.1, 10), resid2_8)
+```
+
+
+```{r}
+c2_6<-es2_6$par
+f2_6<-function(t) c2_6[1]/(1+c2_6[2]*exp(-c2_6[3]*t))+c2_6[4]
+
+c2_7<-es2_7$par
+f2_7<-function(t) c2_7[1]/(1+c2_7[2]*exp(-c2_7[3]*t))+c2_7[4]
+
+c2_8<-es2_8$par
+f2_8<-function(t) c2_8[1]/(1+c2_8[2]*exp(-c2_8[3]*t))+c2_8[4]
+```
+
+
+```{r}
+plot(t,b1_6,xlim=c(0,50),ylim=c(0,18),ylab=TeX("$\\beta_i$"),
+     col=2,cex.lab=1,cex.axis=1.5,main=TeX("$q=2/3$"),cex.main=2)
+points(t,b2_6,col=4)
+
+curve(f1_6,col=2,lty=1,lwd=3,add=TRUE) 
+curve(f2_6,col=4,lty=1,lwd=3,add=TRUE) 
+
+legend("topleft",legend=c(TeX("$\\beta_1$"),TeX("$\\beta_2$")),col=c(2,4),lty=1,lwd=2,cex=1.2)
+```
+
+
+```{r}
+plot(t,b1_7,xlim=c(0,50),ylim=c(1,18),ylab=TeX("$\\beta_i$"),
+     col=2,cex.lab=1,cex.axis=1.5,main=TeX("$q=7/9$"),cex.main=2)
+points(t,b2_7,col=4)
+
+curve(f1_7,col=2,lty=1,lwd=3,add=TRUE) 
+curve(f2_7,col=4,lty=1,lwd=3,add=TRUE) 
+
+legend("topleft",legend=c(TeX("$\\beta_1$"),TeX("$\\beta_2$")),col=c(2,4),lty=1,lwd=2,cex=1.2)
+```
+
+
+```{r}
+plot(t,b1_8,xlim=c(0,50),ylim=c(1,18),ylab=TeX("$\\beta_i$"),
+     col=2,cex.lab= 1,cex.axis=1.5,main=TeX("$q=8/9$"),cex.main=2)
+points(t,b2_8,col=4)
+
+curve(f1_8,col=2,lty=1,lwd=3,add=TRUE) 
+curve(f2_8,col=4,lty=1,lwd=3,add=TRUE) 
+
+legend("topleft",legend=c(TeX("$\\beta_1$"),TeX("$\\beta_2$")),col=c(2,4),lty=1,lwd=2,cex=1.2)
+```  
+
+
+```{r}
+qit_q5<-matrix(0,nrow=I5,ncol=max(Tq5_i))
+qit_q6<-matrix(0,nrow=I6,ncol=max(Tq6_i))
+qit_q7<-matrix(0,nrow=I7,ncol=max(Tq7_i))
+qit_q8<-matrix(0,nrow=I8,ncol=max(Tq8_i))
+
+Zit_q5<-matrix(0,nrow=I5,ncol=max(Tq5_i))
+Zit_q6<-matrix(0,nrow=I6,ncol=max(Tq6_i))
+Zit_q7<-matrix(0,nrow=I7,ncol=max(Tq7_i))
+Zit_q8<-matrix(0,nrow=I8,ncol=max(Tq8_i))
+```
+
+
+```{r}
+q<-5/9
+
+sigmoid<-function(x) 1/(1+exp(-x))
+P_xzs<-function(x,z,s,b1,b2) ifelse(x==1,sigmoid(b1*(s-0.5)+b2*(z-0.5)),1-sigmoid(b1*(s-0.5)+b2*(z-0.5)))
+
+q_post<-function(q_pre,z,x,b1,b2)q_pre*P_xzs(x,z,1,b1,b2)/(q_pre*P_xzs(x,z,1,b1,b2)+(1-q_pre)*P_xzs(x,z,0,b1,b2))
+
+Eq_post<-function(q_pre,z,b1,b2)(q_post(q_pre,z,1,b1,b2)*(q*P_xzs(1,z,1,b1,b2)+(1-q)*P_xzs(1,z,0,b1,b2))+q_post(q_pre,z,0,b1,b2)*((1-q)*P_xzs(0,z,0,b1,b2)+q*P_xzs(0,z,1,b1,b2)))
+
+
+z<-0.5;b1<-f1_5(10);b2<-f2_5(30)
+f<-function(x) Eq_post(x,z,b1,b2)
+curve(f,xlim=c(0,1),col=2,lwd=2,xlab=TeX("q_{pre}"),ylab=TeX("E(q_t(q_{pre})|Z)"),main="Z=0.5")
+abline(h=q,col=4)
+abline(v=q,col=4)
+abline(a=0,b=1,col=3)
+
+
+z<-0.0
+f<-function(x) Eq_post(x,z,b1,b2)
+curve(f,xlim=c(0,1),col=2,lwd=2,xlab=TeX("q_{pre}"),ylab=TeX("E(q_t(q_{pre})|Z)"),main="Z=0.0")
+abline(h=q,col=4)
+abline(v=q,col=4)
+abline(a=0,b=1,col=3)
+
+z<-1.0
+f<-function(x) Eq_post(x,z,b1,b2)
+curve(f,xlim=c(0,1),col=2,lwd=2,xlab=TeX("q_{pre}"),ylab=TeX("E(q_t(q_{pre})|Z)"),main="Z=1.0")
+abline(h=q,col=4)
+abline(v=q,col=4)
+abline(a=0,b=1,col=3)
+
+
+
+q_pre<-0.5
+
+for(i in 1:I5){
+  qit_q5[i,1]<-q_post(q_pre,0.5,Xit_q5[i,1],f1_5(1),f2_5(1))
+for(t in 2:Tq5_i[i]){
+  Zit_q5[i,t-1]<-mean(Xit_q5[i,1:(t-1)])
+  qit_q5[i,t]<-q_post(q_pre,Zit_q5[i,t-1],Xit_q5[i,t],f1_5(t),f2_5(t))
+}  
+  Zit_q5[i,Tq5_i[i]]<-mean(Xit_q5[i,1:Tq5_i[i]])
+}
+```
+
+
+```{r}
+Z5_T<-Zit_q5[,63]
+mean(Z5_T)
+length(Z5_T[Z5_T>0.5])/200
+```
+
+
+```{r}
+i<-1
+T2<-Tq5_i[i]
+
+plot(1:T2,qit_q5[i,1:T2],ylim=c(0,1),col=1,lwd=2,type="l",xlab=TeX("t"),ylab=TeX("S_t,X_t,q_t"))
+points(1:T2,cumsum(qit_q5[i,1:T2])/(1:T2),type="l",lwd=2,col=8)
+points(1:T2,Xit_q5[i,1:T2],col=3)
+points(1:T2,Sit_q5[i,1:T2],col=2,pch=20)
+abline(h=f(q_pre),col=4,lwd=2)
+```
+
+
+```{r}
+V_Z_t<-apply(Zit_q5,2,var)
+plot(1:63,V_Z_t,log="xy")
+```
+
+
+```{r}
+q_t_mean<-function(T,q_pre,X_t,Z_t){
+   q_t<-c()
+   q_t[1]<-q_post(q_pre,0.5,X_t[1],f1_5(1),f2_5(1))
+    for(t in 2:T){
+       q_t[t]<-q_post(q_pre,Z_t[t-1],X_t[t],f1_5(t),f2_5(t))
+    }
+  ans<-mean(q_t)
+  return(ans)
+}
+
+
+q5_est_t<-c()
+for(i in 1:I5){
+t<-Tq5_i[i]
+f<-function(q_pre) q_t_mean(t,q_pre,Xit_q5[i,],Zit_q5[i,])
+qs<-seq(0,1,by=0.01)
+fs<-sapply(qs,f) 
+if(length(which(fs>qs))>0){
+q5_est_t[i]<-qs[max(which(fs>qs))]+0.005
+}
+else{
+q5_est_t[i]<-NA  
+}
+}
+
+```
+
+
+```{r}
+summary(q5_est_t)
+length(q5_est_t[q5_est_t>0.5])/200
+```
+
+
+```{r}
+q<-6/9
+
+sigmoid<-function(x) 1/(1+exp(-x))
+P_xzs<-function(x,z,s,b1,b2) ifelse(x==1,sigmoid(b1*(s-0.5)+b2*(z-0.5)),1-sigmoid(b1*(s-0.5)+b2*(z-0.5)))
+
+q_post<-function(q_pre,z,x,b1,b2)q_pre*P_xzs(x,z,1,b1,b2)/(q_pre*P_xzs(x,z,1,b1,b2)+(1-q_pre)*P_xzs(x,z,0,b1,b2))
+
+Eq_post<-function(q_pre,z,b1,b2)(q_post(q_pre,z,1,b1,b2)*(q*P_xzs(1,z,1,b1,b2)+(1-q)*P_xzs(1,z,0,b1,b2))+q_post(q_pre,z,0,b1,b2)*((1-q)*P_xzs(0,z,0,b1,b2)+q*P_xzs(0,z,1,b1,b2)))
+
+
+z<-0.5;b1<-f1_6(10);b2<-f2_6(35)
+f<-function(x) Eq_post(x,z,b1,b2)
+curve(f,xlim=c(0,1),col=2,lwd=2,xlab=TeX("q_{pre}"),ylab=TeX("E(q_t(q_{pre})|Z)"),main="Z=0.5")
+abline(h=q,col=4)
+abline(v=q,col=4)
+abline(a=0,b=1,col=3)
+
+
+z<-0.0
+f<-function(x) Eq_post(x,z,b1,b2)
+curve(f,xlim=c(0,1),col=2,lwd=2,xlab=TeX("q_{pre}"),ylab=TeX("E(q_t(q_{pre})|Z)"),main="Z=0.0")
+abline(h=q,col=4)
+abline(v=q,col=4)
+abline(a=0,b=1,col=3)
+
+z<-1.0
+f<-function(x) Eq_post(x,z,b1,b2)
+curve(f,xlim=c(0,1),col=2,lwd=2,xlab=TeX("q_{pre}"),ylab=TeX("E(q_t(q_{pre})|Z)"),main="Z=1.0")
+abline(h=q,col=4)
+abline(v=q,col=4)
+abline(a=0,b=1,col=3)
+
+
+
+q_pre<-0.5
+
+for(i in 1:I6){
+   qit_q6[i,1]<-q_post(q_pre,0.5,Xit_q6[i,1],f1_6(1),f2_6(1))
+for(t in 2:Tq6_i[i]){
+  Zit_q6[i,t-1]<-mean(Xit_q6[i,1:(t-1)])
+  qit_q6[i,t]<-q_post(q_pre,Zit_q6[i,t-1],Xit_q6[i,t],f1_6(t),f2_6(t))
+}  
+   Zit_q6[i,Tq6_i[i]]<-mean(Xit_q6[i,1:Tq6_i[i]])
+}
+```
+
+
+```{r}
+Z6_T<-Zit_q6[,63]
+mean(Z6_T)
+length(Z6_T[Z6_T>0.5])/200
+```
+
+
+```{r}
+i<-1
+T2<-Tq6_i[i]
+
+plot(1:T2,qit_q6[i,1:T2],ylim=c(0,1),col=1,lwd=2,type="l",xlab=TeX("t"),ylab=TeX("S_t,X_t,q_t"))
+points(1:T2,cumsum(qit_q6[i,1:T2])/(1:T2),type="l",lwd=2,col=8)
+points(1:T2,Xit_q6[i,1:T2],col=3)
+points(1:T2,Sit_q6[i,1:T2],col=2,pch=20)
+abline(h=f(q_pre),col=4,lwd=2)
+```
+
+
+```{r}
+V_Z_t<-apply(Zit_q6,2,var)
+plot(1:63,V_Z_t,log="xy")
+```
+
+
+```{r}
+q_t_mean<-function(T,q_pre,X_t,Z_t){
+   q_t<-c()
+   q_t[1]<-q_post(q_pre,0.5,X_t[1],f1_6(1),f2_6(1))
+    for(t in 2:T){
+       q_t[t]<-q_post(q_pre,Z_t[t-1],X_t[t],f1_6(t),f2_6(t))
+    }
+  ans<-mean(q_t)
+  return(ans)
+}
+
+
+
+q6_est_t<-c()
+for(i in 1:I6){
+t<-Tq6_i[i]
+f<-function(q_pre) q_t_mean(t,q_pre,Xit_q6[i,],Zit_q6[i,])
+qs<-seq(0,1,by=0.01)
+fs<-sapply(qs,f) 
+if(length(which(fs>qs))>0){
+q6_est_t[i]<-qs[max(which(fs>qs))]+0.005
+}
+else{
+q6_est_t[i]<-NA  
+}
+}
+
+```
+
+
+```{r}
+summary(q6_est_t)
+length(q6_est_t[q6_est_t>0.5])/200
+```
+
+
+```{r}
+q<-7/9
+
+sigmoid<-function(x) 1/(1+exp(-x))
+P_xzs<-function(x,z,s,b1,b2) ifelse(x==1,sigmoid(b1*(s-0.5)+b2*(z-0.5)),1-sigmoid(b1*(s-0.5)+b2*(z-0.5)))
+
+q_post<-function(q_pre,z,x,b1,b2)q_pre*P_xzs(x,z,1,b1,b2)/(q_pre*P_xzs(x,z,1,b1,b2)+(1-q_pre)*P_xzs(x,z,0,b1,b2))
+
+Eq_post<-function(q_pre,z,b1,b2)(q_post(q_pre,z,1,b1,b2)*(q*P_xzs(1,z,1,b1,b2)+(1-q)*P_xzs(1,z,0,b1,b2))+q_post(q_pre,z,0,b1,b2)*((1-q)*P_xzs(0,z,0,b1,b2)+q*P_xzs(0,z,1,b1,b2)))
+
+
+z<-0.5;b1<-f1_7(20);b2<-f2_7(30)
+f<-function(x) Eq_post(x,z,b1,b2)
+curve(f,xlim=c(0,1),col=2,lwd=2,xlab=TeX("q_{pre}"),ylab=TeX("E(q_t(q_{pre})|Z)"),main="Z=0.5")
+abline(h=q,col=4)
+abline(v=q,col=4)
+abline(a=0,b=1,col=3)
+
+
+z<-0.0
+f<-function(x) Eq_post(x,z,b1,b2)
+curve(f,xlim=c(0,1),col=2,lwd=2,xlab=TeX("q_{pre}"),ylab=TeX("E(q_t(q_{pre})|Z)"),main="Z=0.0")
+abline(h=q,col=4)
+abline(v=q,col=4)
+abline(a=0,b=1,col=3)
+
+z<-1.0
+f<-function(x) Eq_post(x,z,b1,b2)
+curve(f,xlim=c(0,1),col=2,lwd=2,xlab=TeX("q_{pre}"),ylab=TeX("E(q_t(q_{pre})|Z)"),main="Z=1.0")
+abline(h=q,col=4)
+abline(v=q,col=4)
+abline(a=0,b=1,col=3)
+
+
+
+q_pre<-0.5
+
+for(i in 1:I7){
+   qit_q7[i,1]<-q_post(q_pre,0.5,Xit_q7[i,1],f1_7(1),f2_7(1))
+for(t in 2:Tq7_i[i]){
+  Zit_q7[i,t-1]<-mean(Xit_q7[i,1:(t-1)])
+  qit_q7[i,t]<-q_post(q_pre,Zit_q7[i,t-1],Xit_q7[i,t],f1_7(t),f2_7(t))
+}  
+   Zit_q7[i,Tq7_i[i]]<-mean(Xit_q7[i,1:Tq7_i[i]])
+}
+```
+
+
+```{r}
+Z7_T<-c()
+for(i in 1:I7) Z7_T[i]<-Zit_q7[i,Tq7_i[i]]
+mean(Z7_T)
+length(Z7_T[Z7_T>0.5])/200
+```
+
+
+```{r}
+i<-1
+T2<-Tq7_i[i]
+
+plot(1:T2,qit_q7[i,1:T2],ylim=c(0,1),col=1,lwd=2,type="l",xlab=TeX("t"),ylab=TeX("S_t,X_t,q_t"))
+points(1:T2,cumsum(qit_q7[i,1:T2])/(1:T2),type="l",lwd=2,col=8)
+points(1:T2,Xit_q7[i,1:T2],col=3)
+points(1:T2,Sit_q7[i,1:T2],col=2,pch=20)
+abline(h=f(q_pre),col=4,lwd=2)
+```
+
+
+```{r}
+V_Z_t<-apply(Zit_q7,2,var)
+plot(1:max(Tq7_i),V_Z_t,log="xy")
+```
+
+
+```{r}
+q_t_mean<-function(T,q_pre,X_t,Z_t){
+   q_t<-c()
+   q_t[1]<-q_post(q_pre,0.5,X_t[1],f1_7(1),f2_7(1))
+    for(t in 2:T){
+       q_t[t]<-q_post(q_pre,Z_t[t-1],X_t[t],f1_7(t),f2_7(t))
+    }
+  ans<-mean(q_t)
+  return(ans)
+}
+
+
+
+q7_est_t<-c()
+for(i in 1:I7){
+t<-Tq7_i[i]  
+f<-function(q_pre) q_t_mean(t,q_pre,Xit_q7[i,],Zit_q7[i,])
+qs<-seq(0,1,by=0.01)
+fs<-sapply(qs,f) 
+if(length(which(fs>qs))>0){
+q7_est_t[i]<-qs[max(which(fs>qs))]+0.005
+}
+else{
+q7_est_t[i]<-NA  
+}
+}
+
+```
+
+
+```{r}
+summary(q7_est_t)
+length(q7_est_t[q7_est_t>0.5])/200
+```
+
+
+```{r}
+q<-8/9
+
+sigmoid<-function(x) 1/(1+exp(-x))
+P_xzs<-function(x,z,s,b1,b2) ifelse(x==1,sigmoid(b1*(s-0.5)+b2*(z-0.5)),1-sigmoid(b1*(s-0.5)+b2*(z-0.5)))
+
+q_post<-function(q_pre,z,x,b1,b2)q_pre*P_xzs(x,z,1,b1,b2)/(q_pre*P_xzs(x,z,1,b1,b2)+(1-q_pre)*P_xzs(x,z,0,b1,b2))
+
+Eq_post<-function(q_pre,z,b1,b2)(q_post(q_pre,z,1,b1,b2)*(q*P_xzs(1,z,1,b1,b2)+(1-q)*P_xzs(1,z,0,b1,b2))+q_post(q_pre,z,0,b1,b2)*((1-q)*P_xzs(0,z,0,b1,b2)+q*P_xzs(0,z,1,b1,b2)))
+
+
+z<-0.5;b1<-f1_8(10);b2<-f2_8(20)
+f<-function(x) Eq_post(x,z,b1,b2)
+curve(f,xlim=c(0,1),col=2,lwd=2,xlab=TeX("q_{pre}"),ylab=TeX("E(q_t(q_{pre})|Z)"),main="Z=0.5")
+abline(h=q,col=4)
+abline(v=q,col=4)
+abline(a=0,b=1,col=3)
+
+
+z<-0.0
+f<-function(x) Eq_post(x,z,b1,b2)
+curve(f,xlim=c(0,1),col=2,lwd=2,xlab=TeX("q_{pre}"),ylab=TeX("E(q_t(q_{pre})|Z)"),main="Z=0.0")
+abline(h=q,col=4)
+abline(v=q,col=4)
+abline(a=0,b=1,col=3)
+
+z<-1.0
+f<-function(x) Eq_post(x,z,b1,b2)
+curve(f,xlim=c(0,1),col=2,lwd=2,xlab=TeX("q_{pre}"),ylab=TeX("E(q_t(q_{pre})|Z)"),main="Z=1.0")
+abline(h=q,col=4)
+abline(v=q,col=4)
+abline(a=0,b=1,col=3)
+
+
+q_pre<-0.5
+
+for(i in 1:I8){
+   qit_q8[i,1]<-q_post(q_pre,0.5,Xit_q8[i,1],f1_8(1),f2_8(1))
+for(t in 2:Tq8_i[i]){
+  Zit_q8[i,t-1]<-mean(Xit_q8[i,1:(t-1)])
+  qit_q8[i,t]<-q_post(q_pre,Zit_q8[i,t-1],Xit_q8[i,t],f1_8(t),f2_8(t))
+}  
+   Zit_q8[i,Tq8_i[i]]<-mean(Xit_q8[i,1:Tq8_i[i]])
+}
+```
+
+
+```{r}
+Z8_T<-c()
+for(i in 1:I8) Z8_T[i]<-Zit_q8[i,Tq8_i[i]]
+mean(Z8_T)
+length(Z8_T[Z8_T>0.5])/400
+```
+
+
+```{r}
+i<-1
+T2<-Tq8_i[i]
+
+plot(1:T2,qit_q8[i,1:T2],ylim=c(0,1),col=1,lwd=2,type="l",xlab=TeX("t"),ylab=TeX("S_t,X_t,q_t"))
+points(1:T2,cumsum(qit_q8[i,1:T2])/(1:T2),type="l",lwd=2,col=8)
+points(1:T2,Xit_q8[i,1:T2],col=3)
+points(1:T2,Sit_q8[i,1:T2],col=2,pch=20)
+abline(h=f(q_pre),col=4,lwd=2)
+```
+
+
+```{r}
+V_Z_t<-apply(Zit_q8,2,var)
+plot(1:max(Tq8_i),V_Z_t,log="xy")
+```
+
+
+```{r}
+q_t_mean<-function(T,q_pre,X_t,Z_t){
+   q_t<-c()
+   q_t[1]<-q_post(q_pre,0.5,X_t[1],f1_8(1),f2_8(1))
+    for(t in 2:T){
+       q_t[t]<-q_post(q_pre,Z_t[t-1],X_t[t],f1_8(t),f2_8(t))
+    }
+  ans<-mean(q_t)
+  return(ans)
+}
+
+
+
+q8_est_t<-c()
+for(i in 1:I8){
+t<-Tq8_i[i]  
+f<-function(q_pre) q_t_mean(t,q_pre,Xit_q8[i,],Zit_q8[i,])
+qs<-seq(0,1,by=0.01)
+fs<-sapply(qs,f) 
+if(length(which(fs>qs))>0){
+q8_est_t[i]<-qs[max(which(fs>qs))]+0.005
+}
+else{
+q8_est_t[i]<-NA  
+}
+}
+```
+
+
+```{r}
+summary(q8_est_t)
+length(q8_est_t[q8_est_t>0.5])/400
+```
+
+
+```{r}
+list5<-list(A=Z5_T,B=q5_est_t)
+par(mar=c(5,5.5,2.5,1.5))
+vioplot(list5, names=c(TeX("$Z(T)$"),"Estimate"),ylim=c(0,1), xlab="", ylab="",col="gray",cex.lab= 2,cex.axis=1.8)
+abline(h=5/9,lty=2,lwd=2.5)
+abline(h=1/2,lty=1,lwd=3.5)
+text(0.5,5/9+0.03,"5/9",cex=1.5)
+text(0.5,1/2-0.03,"1/2",cex=1.5)
+
+list6<-list(A=Z6_T,B=q6_est_t)
+par(mar=c(5,5.5,2.5,1.5))
+vioplot(list6, names=c(TeX("$Z(T)$"),"Estimate"),ylim=c(0,1), xlab="", ylab="",col="gray",cex.lab= 2,cex.axis=1.8)
+abline(h=6/9,lty=2,lwd=2.5)
+abline(h=1/2,lty=1,lwd=3.5)
+text(0.5,6/9+0.03,"2/3",cex=1.5)
+text(0.5,1/2-0.03,"1/2",cex=1.5)
+
+list7<-list(A=Z7_T,B=q7_est_t)
+par(mar=c(5,5.5,2.5,1.5))
+vioplot(list7, names=c(TeX("$Z(T)$"),"Estimate"),ylim=c(0,1), xlab="", ylab="",col="gray",cex.lab= 2,cex.axis=1.8)
+abline(h=7/9,lty=2,lwd=2.5)
+abline(h=1/2,lty=1,lwd=3.5)
+text(0.5,7/9+0.03,"7/9",cex=1.5)
+text(0.5,1/2-0.03,"1/2",cex=1.5)
+
+list8<-list(A=Z8_T,B=q8_est_t)
+par(mar=c(5,5.5,2.5,1.5))
+vioplot(list8, names=c(TeX("$Z(T)$"),"Estimate"),ylim=c(0,1), xlab="", ylab="",col="gray",cex.lab= 2,cex.axis=1.8)
+abline(h=8/9,lty=2,lwd=2.5)
+abline(h=1/2,lty=1,lwd=3.5)
+text(0.5,8/9+0.03,"8/9",cex=1.5)
+text(0.5,1/2-0.03,"1/2",cex=1.5)
+```
+
+
+
+
+
+
+
+
